@@ -1,0 +1,12 @@
+programa
+
+   numero a, b, c;
+   texto t;
+   leia(a);
+
+   enquanto(a<5) {
+      escreva(a);
+      a++;
+   }
+
+fimprog;
