@@ -13,6 +13,7 @@ package src.parser;
 	import src.ast.CommandDecisao;
 	import src.ast.CommandRepeticao;
 	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
 	import java.util.ArrayList;
 	import java.util.Stack;
 
@@ -147,6 +148,18 @@ public class IsiLangBaseListener implements IsiLangListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitCmdincrementa(IsiLangParser.CmdincrementaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterCmddecrementa(IsiLangParser.CmddecrementaContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCmddecrementa(IsiLangParser.CmddecrementaContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

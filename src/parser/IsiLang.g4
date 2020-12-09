@@ -13,9 +13,11 @@ grammar IsiLang;
 	import src.ast.CommandDecisao;
 	import src.ast.CommandRepeticao;
 	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
 	import java.util.ArrayList;
 	import java.util.Stack;
 }
+
 
 @members{
 	private int _tipo;
@@ -31,6 +33,7 @@ grammar IsiLang;
 	private String _exprID;
 	private String _exprContent;
 	private String _exprDecision;
+	private String a;
 	private ArrayList<AbstractCommand> listaTrue;
 	private ArrayList<AbstractCommand> listaFalse;
 	
@@ -51,7 +54,7 @@ grammar IsiLang;
 	}
 }
 
-prog	: 'programa' decl bloco  'fimprog;'
+prog	: 'programa' decl bloco 'fimprog;'
            {  program.setVarTable(symbolTable);
            	  program.setComandos(stack.pop());
            	 
@@ -106,7 +109,7 @@ cmd		:  cmdleitura
  		|  cmdselecao
 		|  cmdrepeticao
 		|  cmdincrementa
-		// |  cmddecrementa  
+		|  cmddecrementa  
 		;
 		
 cmdleitura	: 'leia' AP
@@ -114,8 +117,7 @@ cmdleitura	: 'leia' AP
                      	  _readID = _input.LT(-1).getText();
                         } 
                      FP 
-                     SC 
-                     
+                     SC
               {
               	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
               	CommandLeitura cmd = new CommandLeitura(_readID, var);
@@ -125,22 +127,23 @@ cmdleitura	: 'leia' AP
 			
 cmdescrita	: 'escreva' 
                 	AP 
-                	ID {  verificaID(_input.LT(-1).getText());
+                	(ID {  verificaID(_input.LT(-1).getText());
 	                	  _writeID = _input.LT(-1).getText();
-                    } 
+						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			  stack.peek().add(cmd); }
+					| ASP a=STRING ASP { 
+						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			  stack.peek().add(cmd);  }
+					)
                 	FP 
                 	SC
-               	{
-            		CommandEscrita cmd = new CommandEscrita(_writeID);
-            		stack.peek().add(cmd);
-               	}
-			;
+               	;
 			
 cmdattrib	:  ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
                    } 
                ATTR { _exprContent = ""; } 
-               expr 
+               expr  
                SC
                {
                		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
@@ -148,14 +151,46 @@ cmdattrib	:  ID { verificaID(_input.LT(-1).getText());
                }
 			;
 
-cmdincrementa : ID { verificaID(_input.LT(-1).getText());
+cmdincrementa : (ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
                    }
 				'++'
 				SC {
-					CommandIncrementa cmd = new CommandIncrementa(_exprID);
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
 					stack.peek().add(cmd);					
-				}
+				})
+				|
+				(
+				'++'
+				(ID { verificaID(_input.LT(-1).getText());
+                _exprID = _input.LT(-1).getText();
+                }
+
+				SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))
+
+			; 
+
+cmddecrementa : (ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   }
+				'--'
+				SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				})
+				|
+				('--'				
+				ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   }
+				
+				SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				})
 			; 
 			
 			
@@ -164,13 +199,14 @@ cmdselecao  :  'se' AP
                     OPREL { _exprDecision += _input.LT(-1).getText(); }
                     (ID | NUMBER) {_exprDecision += _input.LT(-1).getText(); }
                     FP 
+					'entao'
                     ACH 
                     { curThread = new ArrayList<AbstractCommand>(); 
                       stack.push(curThread);
                     }
                     (cmd)+ 
                     
-                    FCH
+                    FCH 
                     {
                        listaTrue = stack.pop();	
                     } 
@@ -213,6 +249,7 @@ expr		:  termo (
 	            termo
 	            )*
 			;
+
 			
 termo		: ID { verificaID(_input.LT(-1).getText());
 	               _exprContent += _input.LT(-1).getText();
@@ -248,7 +285,8 @@ ACH  : '{'
      
 FCH  : '}'
      ;
-	 
+
+ASP : '"';	 
 	 
 OPREL : '>' | '<' | '>=' | '<=' | '==' | '!='
       ;
@@ -260,3 +298,5 @@ NUMBER	: [0-9]+ ('.' [0-9]+)?
 		;
 		
 WS	: (' ' | '\t' | '\n' | '\r') -> skip;
+
+STRING : ([a-z] | [A-Z] | [0-9])+;

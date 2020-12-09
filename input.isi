@@ -1,12 +1,19 @@
 programa
 
-   numero a, b, c;
-   texto t;
-   leia(a);
+  numero a, b;
+  texto  t1;
 
-   enquanto(a<5) {
-      escreva(a);
-      a++;
-   }
+  leia(a);
+  leia(b);
+  
+  a = 1 + 2 * 3 / b;
+  
 
+  se ( a > b ) entao {
+     escreva (a);
+  }
+  senao {
+     escreva (b);
+  }
+    
 fimprog;

@@ -1,0 +1,861 @@
+2020-12-08 22:34:33:041 grammar LogManager.java:25 before: (COMBINED_GRAMMAR IsiLang (@ header {
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+}) (@ members {
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+}) (RULES (RULE prog (BLOCK (ALT 'programa' decl bloco 'fimprog;' {  program.setVarTable(symbolTable);
+           	  program.setComandos(stack.pop());
+           	 
+           }))) (RULE decl (BLOCK (ALT (+ (BLOCK (ALT declaravar)))))) (RULE declaravar (BLOCK (ALT tipo ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	            		symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    } (* (BLOCK (ALT VIR ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	                     symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    }))) SC))) (RULE tipo (BLOCK (ALT 'numero' { _tipo = IsiVariable.NUMBER;  }) (ALT 'texto' { _tipo = IsiVariable.TEXT;  }))) (RULE bloco (BLOCK (ALT { curThread = new ArrayList<AbstractCommand>(); 
+	        stack.push(curThread);
+          } (+ (BLOCK (ALT cmd)))))) (RULE cmd (BLOCK (ALT cmdleitura) (ALT cmdescrita) (ALT cmdattrib) (ALT cmdselecao) (ALT cmdrepeticao) (ALT cmdincrementa) (ALT cmddecrementa))) (RULE cmdleitura (BLOCK (ALT 'leia' AP ID { verificaID(_input.LT(-1).getText());
+                     	  _readID = _input.LT(-1).getText();
+                        } FP SC {
+              	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+              	CommandLeitura cmd = new CommandLeitura(_readID, var);
+              	stack.peek().add(cmd);
+              }))) (RULE cmdescrita (BLOCK (ALT 'escreva' AP (BLOCK (ALT ID {  verificaID(_input.LT(-1).getText());
+	                	  _writeID = _input.LT(-1).getText();
+						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			  stack.peek().add(cmd); }) (ALT ASP (= a STRING) ASP { 
+						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			  stack.peek().add(cmd);  })) FP SC))) (RULE cmdattrib (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } ATTR { _exprContent = ""; } expr SC {
+               		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
+               		stack.peek().add(cmd);
+               }))) (RULE cmdincrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '++' SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '++' (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                _exprID = _input.LT(-1).getText();
+                } SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))))) (RULE cmddecrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '--' SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '--' ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))) (RULE cmdselecao (BLOCK (ALT 'se' AP ID { _exprDecision = _input.LT(-1).getText(); } OPREL { _exprDecision += _input.LT(-1).getText(); } (BLOCK (ALT ID) (ALT NUMBER)) {_exprDecision += _input.LT(-1).getText(); } FP 'entao' ACH { curThread = new ArrayList<AbstractCommand>(); 
+                      stack.push(curThread);
+                    } (+ (BLOCK (ALT cmd))) FCH {
+                       listaTrue = stack.pop();	
+                    } (? (BLOCK (ALT 'senao' ACH {
+                   	 	curThread = new ArrayList<AbstractCommand>();
+                   	 	stack.push(curThread);
+                   	 } (BLOCK (ALT (+ (BLOCK (ALT cmd))))) FCH {
+                   		listaFalse = stack.pop();
+                   		CommandDecisao cmd = new CommandDecisao(_exprDecision, listaTrue, listaFalse);
+                   		stack.peek().add(cmd);
+                   	})))))) (RULE cmdrepeticao (BLOCK (ALT 'enquanto' AP ID { _exprID = _input.LT(-1).getText(); } OPREL { _exprDecision = _input.LT(-1).getText(); } (BLOCK (ALT ID) (ALT NUMBER)) {_exprDecision += _input.LT(-1).getText(); } FP ACH { 	curThread = new ArrayList<AbstractCommand>(); 
+                      			stack.push(curThread);
+                    		} (+ (BLOCK (ALT cmd))) FCH {
+								listaTrue = stack.pop();
+								CommandRepeticao cmd = new CommandRepeticao(_exprID, _exprDecision, listaTrue);
+								stack.peek().add(cmd);
+							}))) (RULE expr (BLOCK (ALT termo (* (BLOCK (ALT OP { _exprContent += _input.LT(-1).getText();} termo)))))) (RULE termo (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+	               _exprContent += _input.LT(-1).getText();
+                 }) (ALT NUMBER {
+              	_exprContent += _input.LT(-1).getText();
+              }))) (RULE AP (BLOCK (ALT '('))) (RULE FP (BLOCK (ALT ')'))) (RULE SC (BLOCK (ALT ';'))) (RULE OP (BLOCK (ALT '+') (ALT '-') (ALT '*') (ALT '/'))) (RULE ATTR (BLOCK (ALT '='))) (RULE VIR (BLOCK (ALT ','))) (RULE ACH (BLOCK (ALT '{'))) (RULE FCH (BLOCK (ALT '}'))) (RULE ASP (BLOCK (ALT '"'))) (RULE OPREL (BLOCK (ALT '>') (ALT '<') (ALT '>=') (ALT '<=') (ALT '==') (ALT '!='))) (RULE ID (BLOCK (ALT [a-z] (* (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9])))))) (RULE NUMBER (BLOCK (ALT (+ (BLOCK (ALT [0-9]))) (? (BLOCK (ALT '.' (+ (BLOCK (ALT [0-9]))))))))) (RULE WS (BLOCK (LEXER_ALT_ACTION (ALT (BLOCK (ALT ' ') (ALT '\t') (ALT '\n') (ALT '\r'))) skip))) (RULE STRING (BLOCK (ALT (+ (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9]))))))))
+2020-12-08 22:34:33:059 grammar LogManager.java:25 after: (COMBINED_GRAMMAR IsiLang (@ header {
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+}) (@ members {
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+}) (RULES (RULE prog (BLOCK (ALT 'programa' decl bloco 'fimprog;' {  program.setVarTable(symbolTable);
+           	  program.setComandos(stack.pop());
+           	 
+           }))) (RULE decl (BLOCK (ALT (+ (BLOCK (ALT declaravar)))))) (RULE declaravar (BLOCK (ALT tipo ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	            		symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    } (* (BLOCK (ALT VIR ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	                     symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    }))) SC))) (RULE tipo (BLOCK (ALT 'numero' { _tipo = IsiVariable.NUMBER;  }) (ALT 'texto' { _tipo = IsiVariable.TEXT;  }))) (RULE bloco (BLOCK (ALT { curThread = new ArrayList<AbstractCommand>(); 
+	        stack.push(curThread);
+          } (+ (BLOCK (ALT cmd)))))) (RULE cmd (BLOCK (ALT cmdleitura) (ALT cmdescrita) (ALT cmdattrib) (ALT cmdselecao) (ALT cmdrepeticao) (ALT cmdincrementa) (ALT cmddecrementa))) (RULE cmdleitura (BLOCK (ALT 'leia' AP ID { verificaID(_input.LT(-1).getText());
+                     	  _readID = _input.LT(-1).getText();
+                        } FP SC {
+              	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+              	CommandLeitura cmd = new CommandLeitura(_readID, var);
+              	stack.peek().add(cmd);
+              }))) (RULE cmdescrita (BLOCK (ALT 'escreva' AP (BLOCK (ALT ID {  verificaID(_input.LT(-1).getText());
+	                	  _writeID = _input.LT(-1).getText();
+						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			  stack.peek().add(cmd); }) (ALT ASP (= a STRING) ASP { 
+						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			  stack.peek().add(cmd);  })) FP SC))) (RULE cmdattrib (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } ATTR { _exprContent = ""; } expr SC {
+               		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
+               		stack.peek().add(cmd);
+               }))) (RULE cmdincrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '++' SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '++' (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                _exprID = _input.LT(-1).getText();
+                } SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))))) (RULE cmddecrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '--' SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '--' ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))) (RULE cmdselecao (BLOCK (ALT 'se' AP ID { _exprDecision = _input.LT(-1).getText(); } OPREL { _exprDecision += _input.LT(-1).getText(); } (SET ID NUMBER) {_exprDecision += _input.LT(-1).getText(); } FP 'entao' ACH { curThread = new ArrayList<AbstractCommand>(); 
+                      stack.push(curThread);
+                    } (+ (BLOCK (ALT cmd))) FCH {
+                       listaTrue = stack.pop();	
+                    } (? (BLOCK (ALT 'senao' ACH {
+                   	 	curThread = new ArrayList<AbstractCommand>();
+                   	 	stack.push(curThread);
+                   	 } (BLOCK (ALT (+ (BLOCK (ALT cmd))))) FCH {
+                   		listaFalse = stack.pop();
+                   		CommandDecisao cmd = new CommandDecisao(_exprDecision, listaTrue, listaFalse);
+                   		stack.peek().add(cmd);
+                   	})))))) (RULE cmdrepeticao (BLOCK (ALT 'enquanto' AP ID { _exprID = _input.LT(-1).getText(); } OPREL { _exprDecision = _input.LT(-1).getText(); } (SET ID NUMBER) {_exprDecision += _input.LT(-1).getText(); } FP ACH { 	curThread = new ArrayList<AbstractCommand>(); 
+                      			stack.push(curThread);
+                    		} (+ (BLOCK (ALT cmd))) FCH {
+								listaTrue = stack.pop();
+								CommandRepeticao cmd = new CommandRepeticao(_exprID, _exprDecision, listaTrue);
+								stack.peek().add(cmd);
+							}))) (RULE expr (BLOCK (ALT termo (* (BLOCK (ALT OP { _exprContent += _input.LT(-1).getText();} termo)))))) (RULE termo (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+	               _exprContent += _input.LT(-1).getText();
+                 }) (ALT NUMBER {
+              	_exprContent += _input.LT(-1).getText();
+              }))) (RULE AP (BLOCK (ALT '('))) (RULE FP (BLOCK (ALT ')'))) (RULE SC (BLOCK (ALT ';'))) (RULE OP (BLOCK (ALT (SET '+' '-' '*' '/')))) (RULE ATTR (BLOCK (ALT '='))) (RULE VIR (BLOCK (ALT ','))) (RULE ACH (BLOCK (ALT '{'))) (RULE FCH (BLOCK (ALT '}'))) (RULE ASP (BLOCK (ALT '"'))) (RULE OPREL (BLOCK (ALT '>') (ALT '<') (ALT '>=') (ALT '<=') (ALT '==') (ALT '!='))) (RULE ID (BLOCK (ALT [a-z] (* (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9])))))) (RULE NUMBER (BLOCK (ALT (+ (BLOCK (ALT [0-9]))) (? (BLOCK (ALT '.' (+ (BLOCK (ALT [0-9]))))))))) (RULE WS (BLOCK (LEXER_ALT_ACTION (ALT (SET ' ' '\t' '\n' '\r')) skip))) (RULE STRING (BLOCK (ALT (+ (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9]))))))))
+2020-12-08 22:34:33:075 grammar LogManager.java:25 after extract implicit lexer =(COMBINED_GRAMMAR IsiLang (@ header {
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+}) (@ members {
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+}) (RULES (RULE prog (BLOCK (ALT 'programa' decl bloco 'fimprog;' {  program.setVarTable(symbolTable);
+           	  program.setComandos(stack.pop());
+           	 
+           }))) (RULE decl (BLOCK (ALT (+ (BLOCK (ALT declaravar)))))) (RULE declaravar (BLOCK (ALT tipo ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	            		symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    } (* (BLOCK (ALT VIR ID {
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	                     symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    }))) SC))) (RULE tipo (BLOCK (ALT 'numero' { _tipo = IsiVariable.NUMBER;  }) (ALT 'texto' { _tipo = IsiVariable.TEXT;  }))) (RULE bloco (BLOCK (ALT { curThread = new ArrayList<AbstractCommand>(); 
+	        stack.push(curThread);
+          } (+ (BLOCK (ALT cmd)))))) (RULE cmd (BLOCK (ALT cmdleitura) (ALT cmdescrita) (ALT cmdattrib) (ALT cmdselecao) (ALT cmdrepeticao) (ALT cmdincrementa) (ALT cmddecrementa))) (RULE cmdleitura (BLOCK (ALT 'leia' AP ID { verificaID(_input.LT(-1).getText());
+                     	  _readID = _input.LT(-1).getText();
+                        } FP SC {
+              	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+              	CommandLeitura cmd = new CommandLeitura(_readID, var);
+              	stack.peek().add(cmd);
+              }))) (RULE cmdescrita (BLOCK (ALT 'escreva' AP (BLOCK (ALT ID {  verificaID(_input.LT(-1).getText());
+	                	  _writeID = _input.LT(-1).getText();
+						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			  stack.peek().add(cmd); }) (ALT ASP (= a STRING) ASP { 
+						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			  stack.peek().add(cmd);  })) FP SC))) (RULE cmdattrib (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } ATTR { _exprContent = ""; } expr SC {
+               		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
+               		stack.peek().add(cmd);
+               }))) (RULE cmdincrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '++' SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '++' (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                _exprID = _input.LT(-1).getText();
+                } SC {
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))))) (RULE cmddecrementa (BLOCK (ALT (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } '--' SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				}))) (ALT (BLOCK (ALT '--' ID { verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   } SC {
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				}))))) (RULE cmdselecao (BLOCK (ALT 'se' AP ID { _exprDecision = _input.LT(-1).getText(); } OPREL { _exprDecision += _input.LT(-1).getText(); } (SET ID NUMBER) {_exprDecision += _input.LT(-1).getText(); } FP 'entao' ACH { curThread = new ArrayList<AbstractCommand>(); 
+                      stack.push(curThread);
+                    } (+ (BLOCK (ALT cmd))) FCH {
+                       listaTrue = stack.pop();	
+                    } (? (BLOCK (ALT 'senao' ACH {
+                   	 	curThread = new ArrayList<AbstractCommand>();
+                   	 	stack.push(curThread);
+                   	 } (BLOCK (ALT (+ (BLOCK (ALT cmd))))) FCH {
+                   		listaFalse = stack.pop();
+                   		CommandDecisao cmd = new CommandDecisao(_exprDecision, listaTrue, listaFalse);
+                   		stack.peek().add(cmd);
+                   	})))))) (RULE cmdrepeticao (BLOCK (ALT 'enquanto' AP ID { _exprID = _input.LT(-1).getText(); } OPREL { _exprDecision = _input.LT(-1).getText(); } (SET ID NUMBER) {_exprDecision += _input.LT(-1).getText(); } FP ACH { 	curThread = new ArrayList<AbstractCommand>(); 
+                      			stack.push(curThread);
+                    		} (+ (BLOCK (ALT cmd))) FCH {
+								listaTrue = stack.pop();
+								CommandRepeticao cmd = new CommandRepeticao(_exprID, _exprDecision, listaTrue);
+								stack.peek().add(cmd);
+							}))) (RULE expr (BLOCK (ALT termo (* (BLOCK (ALT OP { _exprContent += _input.LT(-1).getText();} termo)))))) (RULE termo (BLOCK (ALT ID { verificaID(_input.LT(-1).getText());
+	               _exprContent += _input.LT(-1).getText();
+                 }) (ALT NUMBER {
+              	_exprContent += _input.LT(-1).getText();
+              })))))
+2020-12-08 22:34:33:075 grammar LogManager.java:25 lexer =(LEXER_GRAMMAR IsiLangLexer (@ header {
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+}) (@ members {
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+}) (RULES (RULE T__0 (BLOCK (ALT 'programa'))) (RULE T__1 (BLOCK (ALT 'fimprog;'))) (RULE T__2 (BLOCK (ALT 'numero'))) (RULE T__3 (BLOCK (ALT 'texto'))) (RULE T__4 (BLOCK (ALT 'leia'))) (RULE T__5 (BLOCK (ALT 'escreva'))) (RULE T__6 (BLOCK (ALT '++'))) (RULE T__7 (BLOCK (ALT '--'))) (RULE T__8 (BLOCK (ALT 'se'))) (RULE T__9 (BLOCK (ALT 'entao'))) (RULE T__10 (BLOCK (ALT 'senao'))) (RULE T__11 (BLOCK (ALT 'enquanto'))) (RULE AP (BLOCK (ALT '('))) (RULE FP (BLOCK (ALT ')'))) (RULE SC (BLOCK (ALT ';'))) (RULE OP (BLOCK (ALT (SET '+' '-' '*' '/')))) (RULE ATTR (BLOCK (ALT '='))) (RULE VIR (BLOCK (ALT ','))) (RULE ACH (BLOCK (ALT '{'))) (RULE FCH (BLOCK (ALT '}'))) (RULE ASP (BLOCK (ALT '"'))) (RULE OPREL (BLOCK (ALT '>') (ALT '<') (ALT '>=') (ALT '<=') (ALT '==') (ALT '!='))) (RULE ID (BLOCK (ALT [a-z] (* (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9])))))) (RULE NUMBER (BLOCK (ALT (+ (BLOCK (ALT [0-9]))) (? (BLOCK (ALT '.' (+ (BLOCK (ALT [0-9]))))))))) (RULE WS (BLOCK (LEXER_ALT_ACTION (ALT (SET ' ' '\t' '\n' '\r')) skip))) (RULE STRING (BLOCK (ALT (+ (BLOCK (ALT [a-z]) (ALT [A-Z]) (ALT [0-9]))))))))
+2020-12-08 22:34:33:216 action-translator LogManager.java:25 translate 
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+
+2020-12-08 22:34:33:216 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+
+2020-12-08 22:34:33:275 semantics LogManager.java:25 tokens={EOF=-1, T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9, T__9=10, T__10=11, T__11=12, AP=13, FP=14, SC=15, OP=16, ATTR=17, VIR=18, ACH=19, FCH=20, ASP=21, OPREL=22, ID=23, NUMBER=24, WS=25, STRING=26}
+2020-12-08 22:34:33:275 semantics LogManager.java:25 strings={'programa'=1, 'fimprog;'=2, 'numero'=3, 'texto'=4, 'leia'=5, 'escreva'=6, '++'=7, '--'=8, 'se'=9, 'entao'=10, 'senao'=11, 'enquanto'=12, '('=13, ')'=14, ';'=15, '='=17, ','=18, '{'=19, '}'=20, '"'=21}
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 0 in rule decl
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[{3..4}, {5..9, 12, 23}]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 1 in rule declaravar
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[18, 15]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 2 in rule tipo
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[3, 4]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 3 in rule bloco
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[{5..9, 12, 23}, 2]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 4 in rule cmd
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[5, 6, 23, 9, 12, {7, 23}, {8, 23}]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? false
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 5 in rule cmdescrita
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 look=[23, 21]
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:287 LL1 LogManager.java:25 
+DECISION 6 in rule cmdincrementa
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[23, 7]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 7 in rule cmddecrementa
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[23, 8]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 8 in rule cmdselecao
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[{5..9, 12, 23}, 20]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 9 in rule cmdselecao
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[{5..9, 12, 23}, 20]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 10 in rule cmdselecao
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[11, {2, 5..9, 12, 20, 23}]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 11 in rule cmdrepeticao
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[{5..9, 12, 23}, 20]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 12 in rule expr
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[16, 15]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 
+DECISION 13 in rule termo
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 look=[23, 24]
+2020-12-08 22:34:33:288 LL1 LogManager.java:25 LL(1)? true
+2020-12-08 22:34:33:289 action-translator LogManager.java:25 translate 
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+
+2020-12-08 22:34:33:289 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+
+2020-12-08 22:34:33:297 action-translator LogManager.java:25 translate   program.setVarTable(symbolTable);
+           	  program.setComandos(stack.pop());
+           	 
+           
+2020-12-08 22:34:33:299 action-translator LogManager.java:25 translate 
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	            		symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    
+2020-12-08 22:34:33:300 action-translator LogManager.java:25 translate 
+	                  _varName = _input.LT(-1).getText();
+	                  _varValue = null;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	                     symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  }
+                    
+2020-12-08 22:34:33:301 action-translator LogManager.java:25 translate  _tipo = IsiVariable.NUMBER;  
+2020-12-08 22:34:33:301 action-translator LogManager.java:25 translate  _tipo = IsiVariable.TEXT;  
+2020-12-08 22:34:33:302 action-translator LogManager.java:25 translate  curThread = new ArrayList<AbstractCommand>(); 
+	        stack.push(curThread);
+          
+2020-12-08 22:34:33:304 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                     	  _readID = _input.LT(-1).getText();
+                        
+2020-12-08 22:34:33:304 action-translator LogManager.java:25 translate 
+              	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+              	CommandLeitura cmd = new CommandLeitura(_readID, var);
+              	stack.peek().add(cmd);
+              
+2020-12-08 22:34:33:304 action-translator LogManager.java:25 translate   verificaID(_input.LT(-1).getText());
+	                	  _writeID = _input.LT(-1).getText();
+						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			  stack.peek().add(cmd); 
+2020-12-08 22:34:33:304 action-translator LogManager.java:25 translate  
+						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			  stack.peek().add(cmd);  
+2020-12-08 22:34:33:304 action-translator LogManager.java:25 attr [@-1,52:52='a',<0>,135:49]
+2020-12-08 22:34:33:305 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   
+2020-12-08 22:34:33:305 action-translator LogManager.java:25 translate  _exprContent = ""; 
+2020-12-08 22:34:33:305 action-translator LogManager.java:25 translate 
+               		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
+               		stack.peek().add(cmd);
+               
+2020-12-08 22:34:33:306 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   
+2020-12-08 22:34:33:306 action-translator LogManager.java:25 translate 
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				
+2020-12-08 22:34:33:306 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                _exprID = _input.LT(-1).getText();
+                
+2020-12-08 22:34:33:306 action-translator LogManager.java:25 translate 
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				
+2020-12-08 22:34:33:307 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   
+2020-12-08 22:34:33:307 action-translator LogManager.java:25 translate 
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					stack.peek().add(cmd);					
+				
+2020-12-08 22:34:33:307 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+                    _exprID = _input.LT(-1).getText();
+                   
+2020-12-08 22:34:33:307 action-translator LogManager.java:25 translate 
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					stack.peek().add(cmd);					
+				
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate  _exprDecision = _input.LT(-1).getText(); 
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate  _exprDecision += _input.LT(-1).getText(); 
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate _exprDecision += _input.LT(-1).getText(); 
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate  curThread = new ArrayList<AbstractCommand>(); 
+                      stack.push(curThread);
+                    
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate 
+                       listaTrue = stack.pop();	
+                    
+2020-12-08 22:34:33:308 action-translator LogManager.java:25 translate 
+                   	 	curThread = new ArrayList<AbstractCommand>();
+                   	 	stack.push(curThread);
+                   	 
+2020-12-08 22:34:33:309 action-translator LogManager.java:25 translate 
+                   		listaFalse = stack.pop();
+                   		CommandDecisao cmd = new CommandDecisao(_exprDecision, listaTrue, listaFalse);
+                   		stack.peek().add(cmd);
+                   	
+2020-12-08 22:34:33:309 action-translator LogManager.java:25 translate  _exprID = _input.LT(-1).getText(); 
+2020-12-08 22:34:33:309 action-translator LogManager.java:25 translate  _exprDecision = _input.LT(-1).getText(); 
+2020-12-08 22:34:33:309 action-translator LogManager.java:25 translate _exprDecision += _input.LT(-1).getText(); 
+2020-12-08 22:34:33:310 action-translator LogManager.java:25 translate  	curThread = new ArrayList<AbstractCommand>(); 
+                      			stack.push(curThread);
+                    		
+2020-12-08 22:34:33:311 action-translator LogManager.java:25 translate 
+								listaTrue = stack.pop();
+								CommandRepeticao cmd = new CommandRepeticao(_exprID, _exprDecision, listaTrue);
+								stack.peek().add(cmd);
+							
+2020-12-08 22:34:33:312 action-translator LogManager.java:25 translate  _exprContent += _input.LT(-1).getText();
+2020-12-08 22:34:33:312 action-translator LogManager.java:25 translate  verificaID(_input.LT(-1).getText());
+	               _exprContent += _input.LT(-1).getText();
+                 
+2020-12-08 22:34:33:312 action-translator LogManager.java:25 translate 
+              	_exprContent += _input.LT(-1).getText();
+              
+2020-12-08 22:34:33:347 action-translator LogManager.java:25 translate 
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+
+2020-12-08 22:34:33:347 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+
+2020-12-08 22:34:33:347 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+
+2020-12-08 22:34:33:352 action-translator LogManager.java:25 translate 
+	private int _tipo;
+	private String _varName;
+	private String _varValue;
+	private IsiSymbolTable symbolTable = new IsiSymbolTable();
+	private IsiSymbol symbol;
+	private IsiProgram program = new IsiProgram();
+	private ArrayList<AbstractCommand> curThread;
+	private Stack<ArrayList<AbstractCommand>> stack = new Stack<ArrayList<AbstractCommand>>();
+	private String _readID;
+	private String _writeID;
+	private String _exprID;
+	private String _exprContent;
+	private String _exprDecision;
+	private String a;
+	private ArrayList<AbstractCommand> listaTrue;
+	private ArrayList<AbstractCommand> listaFalse;
+	
+	public void verificaID(String id){
+		if (!symbolTable.exists(id)){
+			throw new IsiSemanticException("Symbol "+id+" not declared");
+		}
+	}
+	
+	public void exibeComandos(){
+		for (AbstractCommand c: program.getComandos()){
+			System.out.println(c);
+		}
+	}
+	
+	public void generateCode(){
+		program.generateTarget();
+	}
+
+2020-12-08 22:34:33:352 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+
+2020-12-08 22:34:33:352 action-translator LogManager.java:25 translate 
+	import src.datastructures.IsiSymbol;
+	import src.datastructures.IsiVariable;
+	import src.datastructures.IsiSymbolTable;
+	import src.exceptions.IsiSemanticException;
+	import src.ast.IsiProgram;
+	import src.ast.AbstractCommand;
+	import src.ast.CommandLeitura;
+	import src.ast.CommandEscrita;
+	import src.ast.CommandAtribuicao;
+	import src.ast.CommandDecisao;
+	import src.ast.CommandRepeticao;
+	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
+	import java.util.ArrayList;
+	import java.util.Stack;
+

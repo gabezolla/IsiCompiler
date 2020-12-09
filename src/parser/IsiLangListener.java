@@ -13,6 +13,7 @@ package src.parser;
 	import src.ast.CommandDecisao;
 	import src.ast.CommandRepeticao;
 	import src.ast.CommandIncrementa;
+	import src.ast.CommandDecrementa;
 	import java.util.ArrayList;
 	import java.util.Stack;
 
@@ -123,6 +124,16 @@ public interface IsiLangListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitCmdincrementa(IsiLangParser.CmdincrementaContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsiLangParser#cmddecrementa}.
+	 * @param ctx the parse tree
+	 */
+	void enterCmddecrementa(IsiLangParser.CmddecrementaContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsiLangParser#cmddecrementa}.
+	 * @param ctx the parse tree
+	 */
+	void exitCmddecrementa(IsiLangParser.CmddecrementaContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsiLangParser#cmdselecao}.
 	 * @param ctx the parse tree
