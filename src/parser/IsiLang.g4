@@ -42,6 +42,21 @@ grammar IsiLang;
 			throw new IsiSemanticException("Variável "+id+" nao foi declarada.");
 		}
 	}
+
+	public void varUsed(String id) {
+        if(symbolTable.exists(id)){
+            IsiVariable var = (IsiVariable)symbolTable.get(id);
+            var.setUsed(true);
+        }
+    }
+
+    public boolean isVarUsed(String id) {
+        if(symbolTable.exists(id)){
+			IsiVariable var = (IsiVariable)symbolTable.get(id);
+            return var.isUsed();
+        }
+        return false;
+    }
 	
 	public void exibeComandos(){
 		for (AbstractCommand c: program.getComandos()){
@@ -130,6 +145,7 @@ cmdleitura	: 'leia' AP
                     (ID { verificaID(_input.LT(-1).getText());
                      	_readID = _input.LT(-1).getText();
 						IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+						varUsed(_readID);
               			CommandLeitura cmd = new CommandLeitura(_readID, var);
               			stack.peek().add(cmd);
                     }
@@ -137,6 +153,7 @@ cmdleitura	: 'leia' AP
 						verificaID($varName.text);
         				_readID = $varName.text+"["+$position.text+"]"; 
 						IsiVariable var = new IsiVariable($varName.text, 2, null);
+						varUsed(_readID);
 						CommandLeitura cmd = new CommandLeitura(_readID, var);
               			stack.peek().add(cmd); }))
                     FP 
@@ -166,7 +183,9 @@ cmdescrita	: 'escreva'
 
 vetor: (varName=ID ACOL position=NUMBER FCOL {
 		verificaID($varName.text);
-        _exprID = $varName.text+"["+$position.text+"]";})
+        _exprID = $varName.text+"["+$position.text+"]";
+		if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+		})
 	;
 			
 cmdattrib	:  ((ID { verificaID(_input.LT(-1).getText());
@@ -176,13 +195,15 @@ cmdattrib	:  ((ID { verificaID(_input.LT(-1).getText());
                ATTR { _exprContent = ""; } 
                expr  
                SC
-               {
+               {				   	
+				   	varUsed(_exprID);
                		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
                		stack.peek().add(cmd);
                }
 			;
 
 cmdincrementa : ((ID { verificaID(_input.LT(-1).getText());
+					if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
                     _exprID = _input.LT(-1).getText();
                    } | vetor)
 				'++'
@@ -206,6 +227,8 @@ cmdincrementa : ((ID { verificaID(_input.LT(-1).getText());
 
 cmddecrementa : ((ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
+					if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+
                    } | vetor)
 				'--'
 				SC {
@@ -226,15 +249,27 @@ cmddecrementa : ((ID { verificaID(_input.LT(-1).getText());
 			
 			
 cmdif  :  'se' AP
-                    (ID { _exprDecision = _input.LT(-1).getText(); } | (varName=ID ACOL position=NUMBER FCOL {
-																			verificaID($varName.text);
-       																		_exprDecision = $varName.text+"["+$position.text+"]";}))
+                    (ID { 
+						verificaID(_input.LT(-1).getText());
+						_exprDecision = _input.LT(-1).getText(); 
+						if(isVarUsed(_exprDecision)==false) throw new IsiSemanticException("Variavel nao utilizada"); } 
+					| (varName=ID ACOL position=NUMBER FCOL {
+						if(isVarUsed(_exprDecision)==false) throw new IsiSemanticException("Variavel nao utilizada");
+						verificaID($varName.text);
+       					_exprDecision = $varName.text+"["+$position.text+"]";}))
+
                     OPREL { _exprDecision += _input.LT(-1).getText(); }
-                    ((ID | NUMBER  {_exprDecision += _input.LT(-1).getText(); })
+
+                    ((varName=ID | NUMBER  {
+						verificaID($varName.text);
+						_exprDecision += _input.LT(-1).getText(); 
+						if(isVarUsed($varName.text)==false) throw new IsiSemanticException("Variavel nao utilizada");})
 					| 
 					(varName=ID ACOL position=NUMBER FCOL { 
 						verificaID($varName.text);
-       					_exprDecision += $varName.text+"["+$position.text+"]";})
+       					_exprDecision += $varName.text+"["+$position.text+"]";
+						if(isVarUsed($varName.text)==false) throw new IsiSemanticException("Variavel nao utilizada");
+						})						   
 					)
                     FP 
 					'entao'
@@ -265,15 +300,28 @@ cmdif  :  'se' AP
             ;
 
 cmdrepeticao : 'enquanto'	AP
-							((ID  { _exprID = _input.LT(-1).getText(); }) | (varName=ID ACOL position=NUMBER FCOL {
-																					verificaID($varName.text);
-       																				_exprID = $varName.text+"["+$position.text+"]";}))
+							((ID  {
+							verificaID(_input.LT(-1).getText());
+							if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+							_exprID = _input.LT(-1).getText();}) 
+							| 
+							(varName=ID ACOL position=NUMBER FCOL {
+								verificaID($varName.text);
+								if(isVarUsed($varName.text)==false) throw new IsiSemanticException("Variavel nao utilizada");
+								_exprID = $varName.text+"["+$position.text+"]";
+							}))
 							OPREL { 
 								_exprDecision = "";
 								_exprDecision += _input.LT(-1).getText(); }
-							((ID | NUMBER {_exprDecision += _input.LT(-1).getText(); }) |
+							((varName=ID | NUMBER {
+								verificaID($varName.text);
+								if(isVarUsed($varName.text)==false) throw new IsiSemanticException("Variavel nao utilizada");
+								_exprDecision += _input.LT(-1).getText(); 
+								}) 
+							|
 							(varName=ID ACOL position=NUMBER FCOL { 
 								verificaID($varName.text);
+								if(isVarUsed($varName.text)==false) throw new IsiSemanticException("Variavel nao utilizada");
        							_exprDecision += $varName.text+"["+$position.text+"]";}
 							))
 							FP

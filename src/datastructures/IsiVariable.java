@@ -5,7 +5,8 @@ public class IsiVariable extends IsiSymbol {
 	public static final int NUMBER = 0;
 	public static final int TEXT = 1;
 	public static final int ARRAY = 2;
-	
+
+	private boolean varUsed = false;	
 	private int type;
 	private String value;
 	
@@ -14,6 +15,14 @@ public class IsiVariable extends IsiSymbol {
 		this.type = type;
 		this.value = value;
 	}
+
+	public boolean isUsed() {
+        return varUsed;
+    }
+
+    public void setUsed(boolean used) {
+        this.varUsed = used;
+    }
 
 	public int getType() {
 		return type;

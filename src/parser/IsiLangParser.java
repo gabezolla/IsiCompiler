@@ -137,6 +137,21 @@ public class IsiLangParser extends Parser {
 				throw new IsiSemanticException("Variável "+id+" nao foi declarada.");
 			}
 		}
+
+		public void varUsed(String id) {
+	        if(symbolTable.exists(id)){
+	            IsiVariable var = (IsiVariable)symbolTable.get(id);
+	            var.setUsed(true);
+	        }
+	    }
+
+	    public boolean isVarUsed(String id) {
+	        if(symbolTable.exists(id)){
+				IsiVariable var = (IsiVariable)symbolTable.get(id);
+	            return var.isUsed();
+	        }
+	        return false;
+	    }
 		
 		public void exibeComandos(){
 			for (AbstractCommand c: program.getComandos()){
@@ -654,6 +669,7 @@ public class IsiLangParser extends Parser {
 				 verificaID(_input.LT(-1).getText());
 				                     	_readID = _input.LT(-1).getText();
 										IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+										varUsed(_readID);
 				              			CommandLeitura cmd = new CommandLeitura(_readID, var);
 				              			stack.peek().add(cmd);
 				                    
@@ -674,6 +690,7 @@ public class IsiLangParser extends Parser {
 										verificaID((((CmdleituraContext)_localctx).varName!=null?((CmdleituraContext)_localctx).varName.getText():null));
 				        				_readID = (((CmdleituraContext)_localctx).varName!=null?((CmdleituraContext)_localctx).varName.getText():null)+"["+(((CmdleituraContext)_localctx).position!=null?((CmdleituraContext)_localctx).position.getText():null)+"]"; 
 										IsiVariable var = new IsiVariable((((CmdleituraContext)_localctx).varName!=null?((CmdleituraContext)_localctx).varName.getText():null), 2, null);
+										varUsed(_readID);
 										CommandLeitura cmd = new CommandLeitura(_readID, var);
 				              			stack.peek().add(cmd); 
 				}
@@ -831,6 +848,8 @@ public class IsiLangParser extends Parser {
 
 					verificaID((((VetorContext)_localctx).varName!=null?((VetorContext)_localctx).varName.getText():null));
 			        _exprID = (((VetorContext)_localctx).varName!=null?((VetorContext)_localctx).varName.getText():null)+"["+(((VetorContext)_localctx).position!=null?((VetorContext)_localctx).position.getText():null)+"]";
+					if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+					
 			}
 			}
 		}
@@ -903,7 +922,8 @@ public class IsiLangParser extends Parser {
 			expr();
 			setState(132);
 			match(SC);
-
+							   	
+							   	varUsed(_exprID);
 			               		CommandAtribuicao cmd = new CommandAtribuicao(_exprID, _exprContent);
 			               		stack.peek().add(cmd);
 			               
@@ -959,6 +979,7 @@ public class IsiLangParser extends Parser {
 					setState(135);
 					match(ID);
 					 verificaID(_input.LT(-1).getText());
+										if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
 					                    _exprID = _input.LT(-1).getText();
 					                   
 					}
@@ -1058,6 +1079,8 @@ public class IsiLangParser extends Parser {
 					match(ID);
 					 verificaID(_input.LT(-1).getText());
 					                    _exprID = _input.LT(-1).getText();
+										if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+
 					                   
 					}
 					break;
@@ -1182,7 +1205,10 @@ public class IsiLangParser extends Parser {
 				{
 				setState(167);
 				match(ID);
-				 _exprDecision = _input.LT(-1).getText(); 
+				 
+										verificaID(_input.LT(-1).getText());
+										_exprDecision = _input.LT(-1).getText(); 
+										if(isVarUsed(_exprDecision)==false) throw new IsiSemanticException("Variavel nao utilizada"); 
 				}
 				break;
 			case 2:
@@ -1197,8 +1223,9 @@ public class IsiLangParser extends Parser {
 				setState(172);
 				match(FCOL);
 
-																							verificaID((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null));
-				       																		_exprDecision = (((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null)+"["+(((CmdifContext)_localctx).position!=null?((CmdifContext)_localctx).position.getText():null)+"]";
+										if(isVarUsed(_exprDecision)==false) throw new IsiSemanticException("Variavel nao utilizada");
+										verificaID((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null));
+				       					_exprDecision = (((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null)+"["+(((CmdifContext)_localctx).position!=null?((CmdifContext)_localctx).position.getText():null)+"]";
 				}
 				}
 				break;
@@ -1217,14 +1244,17 @@ public class IsiLangParser extends Parser {
 				case ID:
 					{
 					setState(178);
-					match(ID);
+					((CmdifContext)_localctx).varName = match(ID);
 					}
 					break;
 				case NUMBER:
 					{
 					setState(179);
 					match(NUMBER);
-					_exprDecision += _input.LT(-1).getText(); 
+
+											verificaID((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null));
+											_exprDecision += _input.LT(-1).getText(); 
+											if(isVarUsed((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null))==false) throw new IsiSemanticException("Variavel nao utilizada");
 					}
 					break;
 				default:
@@ -1246,6 +1276,8 @@ public class IsiLangParser extends Parser {
 				 
 										verificaID((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null));
 				       					_exprDecision += (((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null)+"["+(((CmdifContext)_localctx).position!=null?((CmdifContext)_localctx).position.getText():null)+"]";
+										if(isVarUsed((((CmdifContext)_localctx).varName!=null?((CmdifContext)_localctx).varName.getText():null))==false) throw new IsiSemanticException("Variavel nao utilizada");
+										
 				}
 				}
 				break;
@@ -1393,7 +1425,10 @@ public class IsiLangParser extends Parser {
 				{
 				setState(216);
 				match(ID);
-				 _exprID = _input.LT(-1).getText(); 
+
+											verificaID(_input.LT(-1).getText());
+											if(isVarUsed(_exprID)==false) throw new IsiSemanticException("Variavel nao utilizada");
+											_exprID = _input.LT(-1).getText();
 				}
 				}
 				break;
@@ -1409,8 +1444,10 @@ public class IsiLangParser extends Parser {
 				setState(221);
 				match(FCOL);
 
-																									verificaID((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null));
-				       																				_exprID = (((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null)+"["+(((CmdrepeticaoContext)_localctx).position!=null?((CmdrepeticaoContext)_localctx).position.getText():null)+"]";
+												verificaID((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null));
+												if(isVarUsed((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null))==false) throw new IsiSemanticException("Variavel nao utilizada");
+												_exprID = (((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null)+"["+(((CmdrepeticaoContext)_localctx).position!=null?((CmdrepeticaoContext)_localctx).position.getText():null)+"]";
+											
 				}
 				}
 				break;
@@ -1431,14 +1468,18 @@ public class IsiLangParser extends Parser {
 				case ID:
 					{
 					setState(227);
-					match(ID);
+					((CmdrepeticaoContext)_localctx).varName = match(ID);
 					}
 					break;
 				case NUMBER:
 					{
 					setState(228);
 					match(NUMBER);
-					_exprDecision += _input.LT(-1).getText(); 
+
+													verificaID((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null));
+													if(isVarUsed((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null))==false) throw new IsiSemanticException("Variavel nao utilizada");
+													_exprDecision += _input.LT(-1).getText(); 
+													
 					}
 					break;
 				default:
@@ -1459,6 +1500,7 @@ public class IsiLangParser extends Parser {
 				match(FCOL);
 				 
 												verificaID((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null));
+												if(isVarUsed((((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null))==false) throw new IsiSemanticException("Variavel nao utilizada");
 				       							_exprDecision += (((CmdrepeticaoContext)_localctx).varName!=null?((CmdrepeticaoContext)_localctx).varName.getText():null)+"["+(((CmdrepeticaoContext)_localctx).position!=null?((CmdrepeticaoContext)_localctx).position.getText():null)+"]";
 				}
 				}

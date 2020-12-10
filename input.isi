@@ -1,18 +1,13 @@
 programa
 
   numero a, b;
-  texto  t1;
-  vetor[2] d; 
 
-  leia(d[0]);
-  leia(b);
-  
-  d[1]++;  
 
-   enquanto (d[1] > d[0]) {
-      escreva(d[1]);
-      d[1]++;
+  leia(a);
+  leia(b);  
+
+   se (a > b) {
+      escreva(a);
   }
-
     
 fimprog;

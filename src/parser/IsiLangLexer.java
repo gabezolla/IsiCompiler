@@ -129,6 +129,21 @@ public class IsiLangLexer extends Lexer {
 				throw new IsiSemanticException("Variável "+id+" nao foi declarada.");
 			}
 		}
+
+		public void varUsed(String id) {
+	        if(symbolTable.exists(id)){
+	            IsiVariable var = (IsiVariable)symbolTable.get(id);
+	            var.setUsed(true);
+	        }
+	    }
+
+	    public boolean isVarUsed(String id) {
+	        if(symbolTable.exists(id)){
+				IsiVariable var = (IsiVariable)symbolTable.get(id);
+	            return var.isUsed();
+	        }
+	        return false;
+	    }
 		
 		public void exibeComandos(){
 			for (AbstractCommand c: program.getComandos()){
