@@ -4,6 +4,9 @@ public class CommandDecrementa extends AbstractCommand {
 	private String id;
 	private int pp;
 
+	public static final int posDecrementa = 1;
+	public static final int preDecrementa = 0;
+
 	public CommandDecrementa(String id, int pp) {
 		this.id = id;
 		this.pp = pp;

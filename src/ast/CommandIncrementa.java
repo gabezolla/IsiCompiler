@@ -4,6 +4,9 @@ public class CommandIncrementa extends AbstractCommand {
 	private String id;
 	private int pp;
 	
+	public static final int posIncrementa = 1;
+	public static final int preIncrementa = 0;
+	
 	public CommandIncrementa(String id, int pp) { // pp = pós ou pré incrementação, pós = 1, pré = 0.
 		this.id = id;
 		this.pp = pp;

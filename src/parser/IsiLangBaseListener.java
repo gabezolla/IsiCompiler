@@ -129,6 +129,18 @@ public class IsiLangBaseListener implements IsiLangListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterVetor(IsiLangParser.VetorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitVetor(IsiLangParser.VetorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCmdattrib(IsiLangParser.CmdattribContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -165,13 +177,13 @@ public class IsiLangBaseListener implements IsiLangListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterCmdselecao(IsiLangParser.CmdselecaoContext ctx) { }
+	@Override public void enterCmdif(IsiLangParser.CmdifContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitCmdselecao(IsiLangParser.CmdselecaoContext ctx) { }
+	@Override public void exitCmdif(IsiLangParser.CmdifContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

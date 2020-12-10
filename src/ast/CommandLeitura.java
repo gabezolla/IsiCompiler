@@ -23,6 +23,10 @@ public class CommandLeitura extends AbstractCommand {
 			return id+"= _key."+"nextLine();";
 		}
 
+		if(var.getType() == IsiVariable.ARRAY) {
+			return id+"= _key."+"nextDouble();";
+		}
+
 		return "";
 	}
 

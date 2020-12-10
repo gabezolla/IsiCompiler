@@ -4,7 +4,7 @@ public class IsiVariable extends IsiSymbol {
 	
 	public static final int NUMBER = 0;
 	public static final int TEXT = 1;
-	public static final int BOOLEAN = 2;
+	public static final int ARRAY = 2;
 	
 	private int type;
 	private String value;
@@ -39,7 +39,11 @@ public class IsiVariable extends IsiSymbol {
 	public String generateJavaCode() {
        String str;
        if (type == NUMBER) {
-    	   str = "double ";
+		   str = "double ";
+	   }
+	   else if(type == ARRAY) {
+		   str = "double[] "+name+"= new double["+value+"];";
+		   return str;
 	   }
        else {
     	   str = "String ";

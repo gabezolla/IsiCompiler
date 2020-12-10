@@ -105,6 +105,16 @@ public interface IsiLangListener extends ParseTreeListener {
 	 */
 	void exitCmdescrita(IsiLangParser.CmdescritaContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link IsiLangParser#vetor}.
+	 * @param ctx the parse tree
+	 */
+	void enterVetor(IsiLangParser.VetorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsiLangParser#vetor}.
+	 * @param ctx the parse tree
+	 */
+	void exitVetor(IsiLangParser.VetorContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link IsiLangParser#cmdattrib}.
 	 * @param ctx the parse tree
 	 */
@@ -135,15 +145,15 @@ public interface IsiLangListener extends ParseTreeListener {
 	 */
 	void exitCmddecrementa(IsiLangParser.CmddecrementaContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link IsiLangParser#cmdselecao}.
+	 * Enter a parse tree produced by {@link IsiLangParser#cmdif}.
 	 * @param ctx the parse tree
 	 */
-	void enterCmdselecao(IsiLangParser.CmdselecaoContext ctx);
+	void enterCmdif(IsiLangParser.CmdifContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link IsiLangParser#cmdselecao}.
+	 * Exit a parse tree produced by {@link IsiLangParser#cmdif}.
 	 * @param ctx the parse tree
 	 */
-	void exitCmdselecao(IsiLangParser.CmdselecaoContext ctx);
+	void exitCmdif(IsiLangParser.CmdifContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsiLangParser#cmdrepeticao}.
 	 * @param ctx the parse tree

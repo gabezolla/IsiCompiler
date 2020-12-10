@@ -39,7 +39,7 @@ grammar IsiLang;
 	
 	public void verificaID(String id){
 		if (!symbolTable.exists(id)){
-			throw new IsiSemanticException("Symbol "+id+" not declared");
+			throw new IsiSemanticException("Variável "+id+" nao foi declarada.");
 		}
 	}
 	
@@ -56,8 +56,7 @@ grammar IsiLang;
 
 prog	: 'programa' decl bloco 'fimprog;'
            {  program.setVarTable(symbolTable);
-           	  program.setComandos(stack.pop());
-           	 
+           	  program.setComandos(stack.pop());           	 
            } 
 		;
 		
@@ -65,7 +64,7 @@ decl    :  (declaravar)+
         ;
         
         
-declaravar :  tipo ID  {
+declaravar :  ((tipo ID  {
 	                  _varName = _input.LT(-1).getText();
 	                  _varValue = null;
 	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
@@ -73,9 +72,24 @@ declaravar :  tipo ID  {
 	            		symbolTable.add(symbol);	
 	                  }
 	                  else{
-	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  	 throw new IsiSemanticException("Variavel "+_varName+" ja foi declarada.");
 	                  }
-                    } 
+                    } )
+				|
+
+				('vetor' { _tipo = IsiVariable.ARRAY; }
+					ACOL size=NUMBER FCOL vectorName=ID
+					{ _varName = $vectorName.text;
+	                  _varValue = $size.text;
+	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
+	                  if (!symbolTable.exists(_varName)){
+	            		symbolTable.add(symbol);	
+	                  }
+	                  else{
+	                  	 throw new IsiSemanticException("Variavel "+_varName+" ja foi declarada.");
+	                  } })
+				)
+
               (  VIR 
               	 ID {
 	                  _varName = _input.LT(-1).getText();
@@ -85,7 +99,7 @@ declaravar :  tipo ID  {
 	                     symbolTable.add(symbol);	
 	                  }
 	                  else{
-	                  	 throw new IsiSemanticException("Symbol "+_varName+" already declared");
+	                  	 throw new IsiSemanticException("Variavel "+_varName+" ja foi declarada.");
 	                  }
                     }
               )* 
@@ -106,42 +120,59 @@ bloco	: { curThread = new ArrayList<AbstractCommand>();
 cmd		:  cmdleitura  
  		|  cmdescrita 
  		|  cmdattrib
- 		|  cmdselecao
+ 		|  cmdif
 		|  cmdrepeticao
 		|  cmdincrementa
 		|  cmddecrementa  
 		;
 		
 cmdleitura	: 'leia' AP
-                     ID { verificaID(_input.LT(-1).getText());
-                     	  _readID = _input.LT(-1).getText();
-                        } 
-                     FP 
-                     SC
+                    (ID { verificaID(_input.LT(-1).getText());
+                     	_readID = _input.LT(-1).getText();
+						IsiVariable var = (IsiVariable)symbolTable.get(_readID);
+              			CommandLeitura cmd = new CommandLeitura(_readID, var);
+              			stack.peek().add(cmd);
+                    }
+					| (varName=ID ACOL position=NUMBER FCOL {
+						verificaID($varName.text);
+        				_readID = $varName.text+"["+$position.text+"]"; 
+						IsiVariable var = new IsiVariable($varName.text, 2, null);
+						CommandLeitura cmd = new CommandLeitura(_readID, var);
+              			stack.peek().add(cmd); }))
+                    FP 
+                    SC
               {
-              	IsiVariable var = (IsiVariable)symbolTable.get(_readID);
-              	CommandLeitura cmd = new CommandLeitura(_readID, var);
-              	stack.peek().add(cmd);
+              	
               }   
 			;
 			
 cmdescrita	: 'escreva' 
                 	AP 
                 	(ID {  verificaID(_input.LT(-1).getText());
-	                	  _writeID = _input.LT(-1).getText();
-						  CommandEscrita cmd = new CommandEscrita(_writeID, 0);
-            			  stack.peek().add(cmd); }
+	                	_writeID = _input.LT(-1).getText();
+						CommandEscrita cmd = new CommandEscrita(_writeID, 0);
+            			stack.peek().add(cmd); }
 					| ASP a=STRING ASP { 
-						  CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
-            			  stack.peek().add(cmd);  }
+						CommandEscrita cmd = new CommandEscrita($a.getText(), 1);
+            			stack.peek().add(cmd);  }
+					| vetor {						
+						CommandEscrita cmd = new CommandEscrita(_exprID, 0);
+						stack.peek().add(cmd);
+					}
 					)
                 	FP 
                 	SC
                	;
+
+vetor: (varName=ID ACOL position=NUMBER FCOL {
+		verificaID($varName.text);
+        _exprID = $varName.text+"["+$position.text+"]";})
+	;
 			
-cmdattrib	:  ID { verificaID(_input.LT(-1).getText());
+cmdattrib	:  ((ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
-                   } 
+                   })
+				| vetor)
                ATTR { _exprContent = ""; } 
                expr  
                SC
@@ -151,12 +182,12 @@ cmdattrib	:  ID { verificaID(_input.LT(-1).getText());
                }
 			;
 
-cmdincrementa : (ID { verificaID(_input.LT(-1).getText());
+cmdincrementa : ((ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
-                   }
+                   } | vetor)
 				'++'
 				SC {
-					CommandIncrementa cmd = new CommandIncrementa(_exprID, 1);
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, CommandIncrementa.posIncrementa);
 					stack.peek().add(cmd);					
 				})
 				|
@@ -167,18 +198,18 @@ cmdincrementa : (ID { verificaID(_input.LT(-1).getText());
                 }
 
 				SC {
-					CommandIncrementa cmd = new CommandIncrementa(_exprID, 0);
+					CommandIncrementa cmd = new CommandIncrementa(_exprID, CommandIncrementa.preIncrementa);
 					stack.peek().add(cmd);					
 				}))
 
 			; 
 
-cmddecrementa : (ID { verificaID(_input.LT(-1).getText());
+cmddecrementa : ((ID { verificaID(_input.LT(-1).getText());
                     _exprID = _input.LT(-1).getText();
-                   }
+                   } | vetor)
 				'--'
 				SC {
-					CommandDecrementa cmd = new CommandDecrementa(_exprID, 1);
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, CommandDecrementa.posDecrementa);
 					stack.peek().add(cmd);					
 				})
 				|
@@ -188,16 +219,23 @@ cmddecrementa : (ID { verificaID(_input.LT(-1).getText());
                    }
 				
 				SC {
-					CommandDecrementa cmd = new CommandDecrementa(_exprID, 0);
+					CommandDecrementa cmd = new CommandDecrementa(_exprID, CommandDecrementa.preDecrementa);
 					stack.peek().add(cmd);					
 				})
 			; 
 			
 			
-cmdselecao  :  'se' AP
-                    ID    { _exprDecision = _input.LT(-1).getText(); }
+cmdif  :  'se' AP
+                    (ID { _exprDecision = _input.LT(-1).getText(); } | (varName=ID ACOL position=NUMBER FCOL {
+																			verificaID($varName.text);
+       																		_exprDecision = $varName.text+"["+$position.text+"]";}))
                     OPREL { _exprDecision += _input.LT(-1).getText(); }
-                    (ID | NUMBER) {_exprDecision += _input.LT(-1).getText(); }
+                    ((ID | NUMBER  {_exprDecision += _input.LT(-1).getText(); })
+					| 
+					(varName=ID ACOL position=NUMBER FCOL { 
+						verificaID($varName.text);
+       					_exprDecision += $varName.text+"["+$position.text+"]";})
+					)
                     FP 
 					'entao'
                     ACH 
@@ -227,9 +265,17 @@ cmdselecao  :  'se' AP
             ;
 
 cmdrepeticao : 'enquanto'	AP
-							ID  { _exprID = _input.LT(-1).getText(); }
-							OPREL { _exprDecision = _input.LT(-1).getText(); }
-							(ID | NUMBER) {_exprDecision += _input.LT(-1).getText(); }
+							((ID  { _exprID = _input.LT(-1).getText(); }) | (varName=ID ACOL position=NUMBER FCOL {
+																					verificaID($varName.text);
+       																				_exprID = $varName.text+"["+$position.text+"]";}))
+							OPREL { 
+								_exprDecision = "";
+								_exprDecision += _input.LT(-1).getText(); }
+							((ID | NUMBER {_exprDecision += _input.LT(-1).getText(); }) |
+							(varName=ID ACOL position=NUMBER FCOL { 
+								verificaID($varName.text);
+       							_exprDecision += $varName.text+"["+$position.text+"]";}
+							))
 							FP
 							ACH 
                     		{ 	curThread = new ArrayList<AbstractCommand>(); 
@@ -274,7 +320,7 @@ SC	: ';'
 OP	: '+' | '-' | '*' | '/'
 	;
 	
-ATTR : '='
+ATTR : ':='
 	 ;
 	 
 VIR  : ','
@@ -287,6 +333,9 @@ FCH  : '}'
      ;
 
 ASP : '"';	 
+
+ACOL : '[';
+FCOL : ']';
 	 
 OPREL : '>' | '<' | '>=' | '<=' | '==' | '!='
       ;
@@ -300,3 +349,5 @@ NUMBER	: [0-9]+ ('.' [0-9]+)?
 WS	: (' ' | '\t' | '\n' | '\r') -> skip;
 
 STRING : ([a-z] | [A-Z] | [0-9])+;
+
+BOOL : 'verdadeiro' | 'falso';
