@@ -2,7 +2,7 @@
 
 Projeto para a disciplina de Compiladores, ministrada pelo professor Isidro durante o quadrimestre suplementar.
 Integrantes
-| | |
+
 |`Integrantes`|-|
 |`Nome`| Pedro Henrique Batistela Lopes / Gabriel Zolla Juarez|
 
