@@ -1,11 +1,11 @@
 # IsiCompiler
 
 Projeto para a disciplina de Compiladores, ministrada pelo professor Isidro durante o quadrimestre suplementar.
-Integrantes
 
-|`Integrantes`|-|
-|`Nome`| Pedro Henrique Batistela Lopes / Gabriel Zolla Juarez|
-
+| Integrantes | RA |
+|--------------------------------|:-------------|
+| Pedro Henrique Batistela Lopes | 11201722043  | 
+| Gabriel Zolla Juarez           | 11201721446  | 
 
 # Requisitos obrigatórios
 - Possui 2 tipos de variáveis.  :heavy_check_mark:
