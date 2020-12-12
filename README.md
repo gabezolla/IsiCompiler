@@ -5,7 +5,7 @@ Integrantes
 | | |
 |`Integrantes`|-|
 |`Nome`| Pedro Henrique Batistela Lopes / Gabriel Zolla Juarez|
-|`RA`| 11201722043 / 11201721446|
+
 
 # Requisitos obrigatórios
 - Possui 2 tipos de variáveis.  :heavy_check_mark:
