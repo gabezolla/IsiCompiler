@@ -22,7 +22,7 @@ public class CommandDecisao extends AbstractCommand {
 			str.append(cmd.generateJavaCode());
 		}
 		str.append("}");
-		if (listaFalse.size() > 0) {
+		if (listaFalse != null && listaFalse.size() > 0) {
 			str.append("else {\n");
 			for (AbstractCommand cmd: listaFalse) {
 				str.append(cmd.generateJavaCode());

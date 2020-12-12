@@ -27,7 +27,6 @@ ID=26
 NUMBER=27
 WS=28
 STRING=29
-BOOL=30
 'programa'=1
 'fimprog;'=2
 'vetor'=3

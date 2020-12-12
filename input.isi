@@ -1,13 +1,24 @@
 programa
 
-  numero a, b;
-
-
+  numero a, b, c;
   leia(a);
-  leia(b);  
 
-   se (a > b) {
-      escreva(a);
+  a := 1
+  b := 2;
+  c := 3
+
+  enquanto(a>0) {
+    a++;
+  }
+
+  se(b>1) entao {
+    escreva(b);
+  }
+
+  se(c>2) entao {
+    escreva(c);
+  } senao {
+    escreva("Menor");
   }
     
 fimprog;

@@ -16,6 +16,7 @@ package src.parser;
 	import src.ast.CommandDecrementa;
 	import java.util.ArrayList;
 	import java.util.Stack;
+	import java.util.*;
 
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -34,6 +35,16 @@ public interface IsiLangListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitProg(IsiLangParser.ProgContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link IsiLangParser#fimprog}.
+	 * @param ctx the parse tree
+	 */
+	void enterFimprog(IsiLangParser.FimprogContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link IsiLangParser#fimprog}.
+	 * @param ctx the parse tree
+	 */
+	void exitFimprog(IsiLangParser.FimprogContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link IsiLangParser#decl}.
 	 * @param ctx the parse tree

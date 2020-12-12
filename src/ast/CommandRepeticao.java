@@ -4,12 +4,10 @@ import java.util.ArrayList;
 
 public class CommandRepeticao extends AbstractCommand {
 
-	private String id;
     private String condition;
     private ArrayList<AbstractCommand> lt;
 	
-	public CommandRepeticao(String id, String condition, ArrayList<AbstractCommand> lt) {
-		this.id = id;
+	public CommandRepeticao(String condition, ArrayList<AbstractCommand> lt) {
         this.condition = condition;
         this.lt = lt;
     }
@@ -17,7 +15,7 @@ public class CommandRepeticao extends AbstractCommand {
     public String generateJavaCode() {
 		// TODO Auto-generated method stub
 		StringBuilder str = new StringBuilder();
-		str.append("while ("+ id +""+condition+") {\n");
+		str.append("while ("+condition+") {\n");
 		for (AbstractCommand cmd: lt) {
             str.append(cmd.generateJavaCode());
             str.append("\n");
@@ -28,6 +26,6 @@ public class CommandRepeticao extends AbstractCommand {
 
     @Override
 	public String toString() {
-		return "CommandRepeticao [condition= "+id+""+condition+", listaTrue=" + lt + "]";
+		return "CommandRepeticao [condition= "+condition+", listaTrue=" + lt + "]";
 	}
 }
