@@ -38,12 +38,14 @@ grammar IsiLang;
 	private ArrayList<AbstractCommand> listaTrue;
 	private ArrayList<AbstractCommand> listaFalse;
 	private ArrayList<String> allVariables = new ArrayList<String>();
+	private HashMap<String, String> arraySizes = new HashMap<String, String>();
+	
 	
 	public void verificaID(String id){
 		if (!symbolTable.exists(id)){
 			throw new IsiSemanticException("Variável "+id+" nao foi declarada.");
 		}
-	}
+	} 
 	
 	public void exibeComandos(){
 		for (AbstractCommand c: program.getComandos()){
@@ -58,6 +60,11 @@ grammar IsiLang;
 	public void allVariablesUsed() {
 		Collection.sort(allVariables);
 		if(!allVariables.isEmpty()) throw new IsiSemanticException("Variavel "+allVariables.get(0)+" nao utilizada");
+	}
+	public void arrayExceeded(String nome, String tamanho){
+		if(Integer.parseInt(arraySizes.get(nome))<=Integer.parseInt(tamanho))
+			throw new IsiSemanticException("Tamanho de: "+nome+" excedido");
+		
 	}
 }
 
@@ -93,6 +100,7 @@ declaravar :  ((tipo ID  {
 				('vetor' { _tipo = IsiVariable.ARRAY; }
 					ACOL size=NUMBER FCOL vectorName=ID
 					{ _varName = $vectorName.text;
+					  arraySizes.put($vectorName.text, $size.text);
 	                  _varValue = $size.text;
 					  allVariables.add(_varName);
 	                  symbol = new IsiVariable(_varName, _tipo, _varValue);
@@ -181,9 +189,11 @@ cmdescrita	: 'escreva'
                 	SC
                	;
 
-vetor: (varName=ID ACOL size=NUMBER FCOL {
+vetor: (varName=ID ACOL index=NUMBER FCOL {
 		verificaID($varName.text);
-        _exprID = $varName.text+"["+$size.text+"]";
+        _exprID = $varName.text+"["+$index.text+"]";
+        arrayExceeded($varName.text, $index.text);
+        
 		})
 	;
 			
@@ -251,6 +261,7 @@ cmdif  :  'se' 		AP
 					| (varName=ID ACOL position=NUMBER FCOL {						
 						verificaID($varName.text);
 						if(allVariables.contains($varName.text)) allVariables.remove(allVariables.indexOf($varName.text));
+						arrayExceeded($varName.text, $position.text);
        					_exprDecision = $varName.text+"["+$position.text+"]";}))
 
                     OPREL { _exprDecision += _input.LT(-1).getText(); }
@@ -264,6 +275,7 @@ cmdif  :  'se' 		AP
 					varName=ID ACOL position=NUMBER FCOL { 
 						verificaID($varName.text);
 						if(allVariables.contains($varName.text)) allVariables.remove(allVariables.indexOf($varName.text));
+						arrayExceeded($varName.text, $position.text);						
        					_exprDecision += $varName.text+"["+$position.text+"]";						
 						}
 					|
@@ -317,6 +329,7 @@ cmdrepeticao : 'enquanto'	AP
 								verificaID($varName.text);
 								_exprDecision = $varName.text+"["+$position.text+"]";
 								if(allVariables.contains($varName.text)) allVariables.remove(allVariables.indexOf($varName.text));
+								arrayExceeded($varName.text, $position.text);
 							})
 							
 							OPREL { 
@@ -332,6 +345,7 @@ cmdrepeticao : 'enquanto'	AP
 								verificaID($varName.text);
        							_exprDecision += $varName.text+"["+$position.text+"]";
 								if(allVariables.contains($varName.text)) allVariables.remove(allVariables.indexOf($varName.text));
+								arrayExceeded($varName.text, $position.text);
 								}
 							|
 							NUMBER { 
@@ -364,7 +378,7 @@ termo		: ID { verificaID(_input.LT(-1).getText());
                  } 
             | 
               NUMBER
-              {
+			  {
               	_exprContent += _input.LT(-1).getText();
               }
 			;			
@@ -407,7 +421,7 @@ ID	: [a-z] ([a-z] | [A-Z] | [0-9])*
 NUMBER	: [0-9]+ ('.' [0-9]+)?
 		;
 		
-WS	: (' ' | '\t' | '\n' | '\r') -> skip;
+WS	: (' ' | '\t' | '\n' | '\r') -> channel(HIDDEN);
 
-STRING : ([a-z] | [A-Z] | [0-9])+;
+STRING : [A-Z] ([a-z] | [A-Z] | [0-9] | WS)+;
 

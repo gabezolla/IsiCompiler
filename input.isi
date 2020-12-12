@@ -1,24 +1,33 @@
 programa
 
   numero a, b, c;
+  vetor[5] d;
   leia(a);
 
-  a := 1
-  b := 2;
-  c := 3
+  b := a+1*2/2;
+  c := 3;
+  escreva(b);
+  d[4] := 2;
 
-  enquanto(a>0) {
-    a++;
+  enquanto(d[4]>0) {
+    escreva("Hello World");
+    d[4]--;    
   }
 
   se(b>1) entao {
-    escreva(b);
+    enquanto(a>0) {
+      escreva(b);
+      a--; 
+    }
   }
 
   se(c>2) entao {
     escreva(c);
   } senao {
-    escreva("Menor");
+    escreva("Menor um");
   }
+
+  escreva("Menor um");
+
     
 fimprog;

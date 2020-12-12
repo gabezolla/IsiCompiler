@@ -5,17 +5,24 @@ public class MainClass{
 double  a;
 double  b;
 double  c;
+double[] d= new double[5];
 a= _key.nextDouble();
-a = 1;
-b = 2;
+b = a+1*2/2;
 c = 3;
-while (a>0) {
-a++;
+System.out.println(b);
+d[4] = 2;
+while (d[4]>0) {
+System.out.println("Hello World");
+d[4]--;
 }
-if (b>1) {
-System.out.println(b);}
+if (a>0) {
+while (a>0) {
+System.out.println(b);
+a--;
+}}
 if (c>2) {
 System.out.println(c);}else {
-System.out.println("Menor");}
+System.out.println("Menor um");}
 
+System.out.println("Menor um");
   }}
